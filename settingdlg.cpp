@@ -17,7 +17,6 @@ SettingDlg::SettingDlg(QWidget *parent) :
 
 SettingDlg::~SettingDlg()
 {
-    qDebug()<<"111111111";
     delete ui;
 }
 

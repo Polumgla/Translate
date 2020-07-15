@@ -8,7 +8,6 @@
 #include <QTimer>
 #include <QSettings>
 #include <QMessageBox>
-#include <QThread>
 #include "aboutdlg.h"
 #include "settingdlg.h"
 #include "xlsxdocument.h"
@@ -19,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    m_barcodeRows = 0;
     QSettings settings("config", QSettings::IniFormat);
     m_ledIp = settings.value("LED/ip").toString();
     m_excelPath = settings.value("BARCODE/path").toString();
@@ -27,16 +27,16 @@ MainWindow::MainWindow(QWidget *parent) :
     InitMenu();
     checkXlsx();
 
-    m_threadLed = new QThread(this);
-    m_showBarcodeToLed = new ShowBarcodeToLed(this);
-    connect(this, &MainWindow::sendBarcodeToLed, m_showBarcodeToLed, &ShowBarcodeToLed::dealBarcode);
-    m_showBarcodeToLed->moveToThread(m_threadLed);
-    m_threadLed->start();
+    m_showBarcodeToLed = new ShowBarcodeToLed();
 
 }
 
 MainWindow::~MainWindow()
 {
+    if(m_showBarcodeToLed) {
+        delete m_showBarcodeToLed;
+        m_showBarcodeToLed= NULL;
+    }
     delete ui;
 }
 
@@ -45,6 +45,14 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     m_timer->stop();
     if(event->text() == "\r" && !m_barcode.isEmpty()) {
         ui->label->setText(m_barcode);
+        if(m_barcode.length() < 15) {
+            m_showBarcodeToLed->sendCollectData(m_barcode);
+            m_showBarcodeToLed->sendCollectData2(" ");
+        } else if(m_barcode.length() >= 15) {
+            m_showBarcodeToLed->sendCollectData(m_barcode.left(15));
+            m_showBarcodeToLed->sendCollectData2(m_barcode.mid(15));
+        }
+
         writeXlxs(m_barcode);
         m_barcode.clear();
         m_timerShow->start();
@@ -63,25 +71,29 @@ bool MainWindow::writeXlxs(QString barcode)
     xlsx.write(m_barcodeRows+1, 2, time);
     xlsx.save();
     m_barcodeRows++;
-    emit sendBarcodeToLed(barcode);
     return true;
 }
 
 void MainWindow::InitMenu()
 {
     ui->menuBar->setStyleSheet("background-color: rgb(208, 208, 209);");
-    ui->menuBar->addAction("Setting", [=](){
-        SettingDlg setDlg;
-        if(setDlg.exec() != 0) {
-            int nRet = QMessageBox::information(this, "Translate", "重新启动软件，设置生效。请点击\"Ok\"，关闭软件。", QMessageBox::Yes, QMessageBox::No);
-            if(nRet == QMessageBox::Ok)
-                this->close();
-        }
-    });
-    ui->menuBar->addAction("Tips", [=](){
-        AboutDlg aboutDlg;
-        aboutDlg.exec();
-    });
+
+    ui->menuBar->addAction("Setting", this, SLOT(on_setting_Trigger()));
+    ui->menuBar->addAction("Tips", this, SLOT(on_tips_Trigger()));
+}
+void MainWindow::on_setting_Trigger()
+{
+    SettingDlg setDlg;
+    if(setDlg.exec() != 0) {
+        int nRet = QMessageBox::information(this, "Translate", "重新启动软件,设置生效.请点击 OK ,关闭软件.", QMessageBox::Yes, QMessageBox::No);
+        if(nRet == QMessageBox::Ok)
+            this->close();
+    }
+}
+void MainWindow::on_tips_Trigger()
+{
+    AboutDlg aboutDlg;
+    aboutDlg.exec();
 }
 
 void MainWindow::checkXlsx()
@@ -119,7 +131,7 @@ void MainWindow::checkXlsx()
         xlsx.saveAs(path);
         m_barcodeRows++;
     }
-qDebug()<<m_barcodeRows;
+    qDebug()<<__FUNCTION__<<m_barcodeRows;
 }
 
 void MainWindow::InitTimer()

@@ -21,6 +21,10 @@ private:
     void checkXlsx();
     void InitTimer();
 
+private slots:
+    void on_setting_Trigger();
+    void on_tips_Trigger();
+
 protected:
     void keyPressEvent(QKeyEvent *event);
 

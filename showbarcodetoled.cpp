@@ -16,10 +16,9 @@ void ShowBarcodeToLed::init()
 {
     QSettings setting("config", QSettings::IniFormat);
     LedIP = setting.value("LED/ip").toString();
-    qDebug()<<__FUNCTION__<<" | "<<setting.fileName();
     if(LedIP.isEmpty()) {
-        setting.setValue("LED/ip", "192.168.0.141");
-        LedIP = "192.168.0.141";
+        setting.setValue("LED/ip", "192.168.0.142");
+        LedIP = "192.168.0.142";
     }
 
 }
@@ -61,6 +60,23 @@ void ShowBarcodeToLed::addCollectDataTmp()
             }
         } else {
             qDebug()<<__FUNCTION__<<" | load interface:AddTmp_CollectData failed .";
+        }
+
+        if(addAreaFunc) {
+            int i = addAreaFunc(0, 16, 128, 16);
+            if(i != 0) {
+                qDebug()<<__FUNCTION__<<" | add area failed 2 .";
+            }
+        } else {
+            qDebug()<<__FUNCTION__<<" | load interface:AddArea  failed 2 .";
+        }
+        if(addTemplate_CollectDataFunc) {
+            int i = addTemplate_CollectDataFunc("  ", 2, 1, 1, 1, 1);
+            if(i != 0) {
+                qDebug()<<__FUNCTION__<<" | add tmp collect data failed 2 .";
+            }
+        } else {
+            qDebug()<<__FUNCTION__<<" | load interface:AddTmp_CollectData failed 2 .";
         }
     } else {
         qDebug()<<__FUNCTION__<<" | load dll failed.";
@@ -126,9 +142,7 @@ void ShowBarcodeToLed::dealBarcode(QString barcode)
 {
     if(barcode.length() < 15) {
         sendCollectData(barcode);
-        sendCollectData2(" ");
     } else {
-        sendCollectData(barcode.left(15));
-        sendCollectData2(barcode.mid(15));
+        sendCollectData2(barcode.left(15));
     }
 }

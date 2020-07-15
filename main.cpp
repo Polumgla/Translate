@@ -10,6 +10,7 @@
 #include <QTextStream>
 #include <QDateTime>
 
+
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
 void customMessageHandler(QtMsgType, const QMessageLogContext &, const QString & str)
 {
@@ -47,7 +48,7 @@ int main(int argc, char *argv[])
         }
     } else {
         if(myWMIC.decodeCPUID(setting.value("Base/key").toString()) != myWMIC.getWMIC("wmic cpu get processorid")) {
-            QMessageBox::information(NULL, "Translate", "设备信息校验失败！", QMessageBox::Close);
+            QMessageBox::information(NULL, "Translate", "设备信息校验失败", QMessageBox::Close);
             return 0;
         }
     }
