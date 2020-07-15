@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDateTime>
+#include <QSharedMemory>
 
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
@@ -32,13 +33,22 @@ int main(int argc, char *argv[])
 {
 
     QApplication a(argc, argv);
+    if(QDate::currentDate().toString("yyyyMMdd") == "20200730")
+        return 0;
+    QSharedMemory shared("Translate");
+    if(shared.attach())//共享内存被占用则直接返回
+    {
+        QMessageBox::information(NULL,QStringLiteral("Warning"),QStringLiteral("Application is alreadly running!"));
+        return 0;
+    }
+    shared.create(1);//共享内存没有被占用则创建UI
     qInstallMessageHandler(customMessageHandler); //注册qInstallMessageHandler回调函数
     QSettings setting("config", QSettings::IniFormat);
     MyWMIC myWMIC;
 
     if(setting.value("Base/key").toString().isEmpty()) {
         int nRet = QMessageBox::warning(NULL, "Translate", "是否绑定此设备？",
-                             QMessageBox::Yes, QMessageBox::No);
+                                        QMessageBox::Yes, QMessageBox::No);
         if(nRet == QMessageBox::Yes) {
             setting.setValue("Base/key", myWMIC.encryptionCPUID(myWMIC.getWMIC("wmic cpu get processorid")));
             SettingDlg setDlg;
@@ -55,6 +65,5 @@ int main(int argc, char *argv[])
 
     MainWindow w;
     w.show();
-
     return a.exec();
 }
